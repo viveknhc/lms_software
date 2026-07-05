@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import Layout from "./components/layout/Layout";
+import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
@@ -135,56 +136,6 @@ export default function App() {
               }
             />
 
-            {/* Instructor routes */}
-            <Route
-              path="/instructor/dashboard"
-              element={
-                <ProtectedRoute requiredRole="instructor">
-                  <InstructorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/instructor/courses"
-              element={
-                <ProtectedRoute requiredRole="instructor">
-                  <InstructorCourses />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/instructor/courses/:courseId"
-              element={
-                <ProtectedRoute requiredRole="instructor">
-                  <CourseBuilder />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/instructor/quiz/new"
-              element={
-                <ProtectedRoute requiredRole="instructor">
-                  <QuizCreator />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/instructor/quiz/:quizId/edit"
-              element={
-                <ProtectedRoute requiredRole="instructor">
-                  <QuizCreator />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/instructor/grade"
-              element={
-                <ProtectedRoute requiredRole="instructor">
-                  <GradeAssignments />
-                </ProtectedRoute>
-              }
-            />
-
             {/* Student routes */}
             <Route
               path="/assignments"
@@ -194,48 +145,38 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+          </Route>
 
-            {/* Admin routes */}
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <UserManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/courses"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <CourseManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/payments"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <PaymentManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/reports"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
+          {/* Instructor Dashboard Layout */}
+          <Route
+            element={
+              <ProtectedRoute requiredRole="instructor">
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+            <Route path="/instructor/courses" element={<InstructorCourses />} />
+            <Route path="/instructor/courses/:courseId" element={<CourseBuilder />} />
+            <Route path="/instructor/quiz/new" element={<QuizCreator />} />
+            <Route path="/instructor/quiz/:quizId/edit" element={<QuizCreator />} />
+            <Route path="/instructor/grade" element={<GradeAssignments />} />
+          </Route>
+
+          {/* Admin Dashboard Layout */}
+          <Route
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/courses" element={<CourseManagement />} />
+            <Route path="/admin/payments" element={<PaymentManagement />} />
+            <Route path="/admin/reports" element={<Reports />} />
+          </Route>
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
