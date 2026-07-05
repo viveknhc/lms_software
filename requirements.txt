@@ -11,3 +11,4 @@ redis==8.0.1
 pillow==12.3.0
 # Testing & Coverage
 coverage>=7.6.0
+stripe==15.3.0
