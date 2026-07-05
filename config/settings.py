@@ -194,4 +194,22 @@ MEDIA_ROOT = BASE_DIR / "media"
 # DEFAULT PRIMARY KEY
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# CACHE (Redis)
+# ---------------------------------------------------------------------------
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
+    }
+}
+
+CMS_CACHE_TTL = int(os.getenv("CMS_CACHE_TTL", "300"))
+
+
+# ---------------------------------------------------------------------------
+# DEFAULT PRIMARY KEY
+# ---------------------------------------------------------------------------
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
