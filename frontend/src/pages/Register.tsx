@@ -159,30 +159,14 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">I want to</label>
-              <div className="mt-2 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, role: "student" })}
-                  className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
-                    form.role === "student"
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
+              <label className="block text-sm font-medium text-gray-700">Role</label>
+              <p className="mt-1 text-xs text-gray-500">
+                You'll register as a student. Instructors and admin roles can be assigned by an admin after registration.
+              </p>
+              <div className="mt-2">
+                <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700">
                   Learn (Student)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, role: "instructor" })}
-                  className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
-                    form.role === "instructor"
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  Teach (Instructor)
-                </button>
+                </div>
               </div>
             </div>
           </div>

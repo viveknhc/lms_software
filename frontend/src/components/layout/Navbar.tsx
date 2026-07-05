@@ -13,6 +13,12 @@ import {
   FileText,
   Award,
   HelpCircle,
+  Users,
+  DollarSign,
+  BarChart3,
+  ClipboardCheck,
+  PlusCircle,
+  PenTool,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { notificationsApi } from "../../api/notifications";
@@ -22,17 +28,24 @@ const studentLinks = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/courses", label: "Browse Courses", icon: BookOpen },
   { to: "/my-courses", label: "My Courses", icon: GraduationCap },
+  { to: "/assignments", label: "Assignments", icon: FileText },
   { to: "/certificates", label: "Certificates", icon: Award },
 ];
 
 const instructorLinks = [
   { to: "/instructor/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/courses", label: "My Courses", icon: BookOpen },
+  { to: "/instructor/courses", label: "My Courses", icon: BookOpen },
+  { to: "/instructor/courses/new", label: "Create Course", icon: PlusCircle },
+  { to: "/instructor/quiz/new", label: "New Quiz", icon: PenTool },
+  { to: "/instructor/grade", label: "Grade", icon: ClipboardCheck },
 ];
 
 const adminLinks = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/courses", label: "Courses", icon: BookOpen },
+  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/courses", label: "Courses", icon: BookOpen },
+  { to: "/admin/payments", label: "Payments", icon: DollarSign },
+  { to: "/admin/reports", label: "Reports", icon: BarChart3 },
 ];
 
 export default function Navbar() {

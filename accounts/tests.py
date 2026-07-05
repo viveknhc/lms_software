@@ -275,7 +275,7 @@ class MeViewTests(TestCase):
         response = self.client.get(self.url, format="json")
         expected_fields = {
             "id", "username", "email", "first_name", "last_name",
-            "role", "bio", "profile_picture", "phone", "date_of_birth",
+            "role", "is_active", "bio", "profile_picture", "phone", "date_of_birth",
             "email_verified", "date_joined",
         }
         self.assertEqual(set(response.data.keys()), expected_fields)

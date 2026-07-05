@@ -6,6 +6,7 @@ export interface User {
   first_name: string;
   last_name: string;
   role: "student" | "instructor" | "admin";
+  is_active: boolean;
   bio: string;
   profile_picture: string | null;
   phone: string;

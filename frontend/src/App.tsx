@@ -22,6 +22,17 @@ import Notifications from "./pages/Notifications";
 import MyCourses from "./pages/MyCourses";
 import NotFound from "./pages/NotFound";
 
+// New pages
+import InstructorCourses from "./pages/instructor/MyCourses";
+import CourseBuilder from "./pages/instructor/CourseBuilder";
+import QuizCreator from "./pages/instructor/QuizCreator";
+import GradeAssignments from "./pages/instructor/GradeAssignments";
+import StudentAssignments from "./pages/student/Assignments";
+import UserManagement from "./pages/admin/UserManagement";
+import CourseManagement from "./pages/admin/CourseManagement";
+import PaymentManagement from "./pages/admin/PaymentManagement";
+import Reports from "./pages/admin/Reports";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -133,6 +144,56 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/instructor/courses"
+              element={
+                <ProtectedRoute requiredRole="instructor">
+                  <InstructorCourses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructor/courses/:courseId"
+              element={
+                <ProtectedRoute requiredRole="instructor">
+                  <CourseBuilder />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructor/quiz/new"
+              element={
+                <ProtectedRoute requiredRole="instructor">
+                  <QuizCreator />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructor/quiz/:quizId/edit"
+              element={
+                <ProtectedRoute requiredRole="instructor">
+                  <QuizCreator />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructor/grade"
+              element={
+                <ProtectedRoute requiredRole="instructor">
+                  <GradeAssignments />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Student routes */}
+            <Route
+              path="/assignments"
+              element={
+                <ProtectedRoute requiredRole="student">
+                  <StudentAssignments />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Admin routes */}
             <Route
@@ -140,6 +201,38 @@ export default function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/courses"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <CourseManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/payments"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <PaymentManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <Reports />
                 </ProtectedRoute>
               }
             />

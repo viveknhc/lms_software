@@ -10,4 +10,13 @@ export const learningApi = {
 
   getLesson: (id: number) =>
     client.get<Lesson>(`/learning/lessons/${id}/`),
+
+  createLesson: (data: Partial<Lesson>) =>
+    client.post<Lesson>("/learning/lessons/", data),
+
+  updateLesson: (id: number, data: Partial<Lesson>) =>
+    client.patch<Lesson>(`/learning/lessons/${id}/`, data),
+
+  deleteLesson: (id: number) =>
+    client.delete(`/learning/lessons/${id}/`),
 };

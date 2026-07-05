@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -62,6 +62,39 @@ class ChangePasswordView(APIView):
         user.set_password(serializer.validated_data["new_password"])
         user.save()
         return Response({"detail": "Password updated successfully."})
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """Admin viewset for managing users."""
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    search_fields = ["username", "email", "first_name", "last_name"]
+    filterset_fields = ["role", "is_active"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not self.request.user.is_authenticated:
+            return qs.none()
+        if self.request.user.role not in ("admin",):
+            qs = qs.filter(id=self.request.user.id)
+        return qs
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        if user.role not in ("admin",) and serializer.instance != user:
+            self.permission_denied(self.request)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if self.request.user.role not in ("admin",):
+            self.permission_denied(self.request)
+        instance.delete()
+
+    def perform_create(self, serializer):
+        if self.request.user.role not in ("admin",):
+            self.permission_denied(self.request)
+        serializer.save()
 
 
 class LogoutView(APIView):

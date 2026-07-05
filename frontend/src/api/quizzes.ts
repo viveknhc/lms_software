@@ -8,6 +8,15 @@ export const quizzesApi = {
   getQuiz: (id: number) =>
     client.get<QuizDetail>(`/assessments/quizzes/${id}/`),
 
+  createQuiz: (data: Partial<Quiz>) =>
+    client.post<Quiz>("/assessments/quizzes/", data),
+
+  updateQuiz: (id: number, data: Partial<Quiz>) =>
+    client.patch<Quiz>(`/assessments/quizzes/${id}/`, data),
+
+  deleteQuiz: (id: number) =>
+    client.delete(`/assessments/quizzes/${id}/`),
+
   startAttempt: (quizId: number) =>
     client.post<Attempt>("/assessments/attempts/start/", {
       quiz_id: quizId,
