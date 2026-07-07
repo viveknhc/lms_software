@@ -8,7 +8,6 @@ import {
   User,
   LogOut,
   Menu,
-  X,
   ChevronDown,
   Users,
   DollarSign,

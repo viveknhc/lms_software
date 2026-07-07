@@ -158,7 +158,7 @@ export default function UserManagement() {
                   }`}
                   title={user.is_active ? "Deactivate" : "Activate"}
                 >
-                  {user.email_verified ? (
+                  {user.is_active ? (
                     <UserCheck className="h-4 w-4" />
                   ) : (
                     <UserX className="h-4 w-4" />

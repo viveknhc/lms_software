@@ -178,9 +178,8 @@ export default function App() {
             <Route path="/admin/reports" element={<Reports />} />
           </Route>
 
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Route>
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
