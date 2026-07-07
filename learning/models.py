@@ -49,6 +49,12 @@ class Lesson(models.Model):
         verbose_name="Content Type",
     )
     video_url = models.URLField(blank=True, verbose_name="Video URL")
+    video_file = models.FileField(
+        upload_to="lesson_videos/",
+        blank=True,
+        null=True,
+        verbose_name="Video File",
+    )
     content = models.TextField(blank=True, verbose_name="Content")
     duration_minutes = models.PositiveIntegerField(
         default=0, verbose_name="Duration (minutes)"

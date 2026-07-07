@@ -105,7 +105,7 @@ export default function InstructorCourses() {
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  to={`/instructor/courses/${course.id}/edit`}
+                  to={`/instructor/courses/${course.id}`}
                   className="rounded-lg border border-gray-300 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
                   title="Edit course"
                 >

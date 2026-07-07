@@ -30,6 +30,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "title",
             "content_type",
             "video_url",
+            "video_file",
             "content",
             "duration_minutes",
             "order",
@@ -37,7 +38,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "course", "video_file", "created_at", "updated_at"]
 
     def get_section_title(self, obj):
         return obj.section.title if obj.section else None

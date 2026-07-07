@@ -7,6 +7,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.models import User
 from accounts.serializers import (
+    AdminCreateUserSerializer,
     ChangePasswordSerializer,
     RegisterSerializer,
     UserSerializer,
@@ -72,6 +73,11 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ["username", "email", "first_name", "last_name"]
     filterset_fields = ["role", "is_active"]
 
+    def get_serializer_class(self):
+        if self.action == "create":
+            return AdminCreateUserSerializer
+        return UserSerializer
+
     def get_queryset(self):
         qs = super().get_queryset()
         if not self.request.user.is_authenticated:
@@ -90,6 +96,15 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.request.user.role not in ("admin",):
             self.permission_denied(self.request)
         instance.delete()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(
+            UserSerializer(serializer.instance).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def perform_create(self, serializer):
         if self.request.user.role not in ("admin",):

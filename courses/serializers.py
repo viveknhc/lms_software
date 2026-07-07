@@ -39,7 +39,7 @@ class CourseSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "slug", "created_at", "updated_at"]
+        read_only_fields = ["id", "slug", "instructor", "created_at", "updated_at"]
 
     def get_instructor_name(self, obj):
         return str(obj.instructor)

@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -32,6 +33,17 @@ class CourseViewSet(viewsets.ModelViewSet):
         if self.action in ("list", "retrieve"):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+
+    def get_object(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+        queryset = self.filter_queryset(self.get_queryset())
+        if lookup_value and lookup_value.isdigit():
+            obj = get_object_or_404(queryset, pk=lookup_value)
+        else:
+            obj = get_object_or_404(queryset, slug=lookup_value)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def get_queryset(self):
         qs = super().get_queryset()

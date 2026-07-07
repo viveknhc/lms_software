@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   BookOpen,
@@ -12,10 +12,14 @@ import {
   Video,
   FileText,
   HelpCircle,
+  Upload,
+  Film,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { coursesApi } from "../../api/courses";
-import { learningApi } from "../../api/learning";
+import { learningApi, uploadVideo } from "../../api/learning";
 import type { Course, Section } from "../../types";
 import LoadingSpinner from "../../components/LoadingSpinner";
 
@@ -23,10 +27,155 @@ interface LessonForm {
   title: string;
   content_type: "video" | "text" | "document" | "quiz";
   video_url: string;
+  video_file_name: string;
+  video_uploading: boolean;
+  video_upload_progress: number;
   content: string;
   duration_minutes: number;
   is_free: boolean;
   order: number;
+}
+
+function VideoUploader({
+  lesson,
+  onUrlChange,
+  onProgress,
+}: {
+  lesson: LessonForm;
+  onUrlChange: (url: string) => void;
+  onProgress: (percentage: number) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith("video/")) {
+      toast.error("Please select a video file");
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const url = await uploadVideo(file, (progress) => {
+        setUploadProgress(progress.percentage);
+        onProgress(progress.percentage);
+      });
+      onUrlChange(url);
+      setUploading(false);
+      toast.success("Video uploaded successfully!");
+    } catch {
+      toast.error("Failed to upload video");
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => setIsDragOver(false);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const hasVideo = !!lesson.video_url;
+
+  return (
+    <div className="mt-2 space-y-2">
+      {/* Upload area */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => !uploading && fileInputRef.current?.click()}
+        className={`relative cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
+          isDragOver
+            ? "border-indigo-400 bg-indigo-50"
+            : uploading
+            ? "border-amber-300 bg-amber-50"
+            : hasVideo
+            ? "border-green-300 bg-green-50"
+            : "border-gray-300 hover:border-indigo-300 hover:bg-gray-50"
+        }`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+
+        {uploading ? (
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+            <span className="text-xs text-gray-600">
+              Uploading video... {uploadProgress}%
+            </span>
+            <div className="h-1.5 w-full max-w-xs rounded-full bg-amber-200">
+              <div
+                className="h-1.5 rounded-full bg-amber-500 transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        ) : hasVideo ? (
+          <div className="flex items-center justify-center gap-2 text-xs text-green-700">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Video uploaded</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onUrlChange("");
+              }}
+              className="ml-1 rounded p-0.5 text-gray-400 hover:text-red-500"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            <Upload className="h-5 w-5 text-gray-400" />
+            <span className="text-xs text-gray-500">
+              Drop a video file or click to browse
+            </span>
+            <span className="text-[10px] text-gray-400">
+              Supports MP4, WebM, MOV — large files are chunked for performance
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Or paste external URL */}
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1 bg-gray-200" />
+        <span className="text-[10px] text-gray-400">OR</span>
+        <div className="h-px flex-1 bg-gray-200" />
+      </div>
+      <input
+        type="url"
+        value={lesson.video_url || ""}
+        onChange={(e) => onUrlChange(e.target.value)}
+        placeholder="Paste YouTube/Vimeo URL..."
+        className="w-full text-xs border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-300"
+      />
+    </div>
+  );
 }
 
 export default function CourseBuilder() {
@@ -68,6 +217,9 @@ export default function CourseBuilder() {
                 title: l.title,
                 content_type: l.content_type as "video" | "text" | "document" | "quiz",
                 video_url: l.video_url,
+                video_file_name: "",
+                video_uploading: false,
+                video_upload_progress: 0,
                 content: l.content,
                 duration_minutes: l.duration_minutes,
                 is_free: l.is_free,
@@ -131,6 +283,9 @@ export default function CourseBuilder() {
                   title: "",
                   content_type: "text" as const,
                   video_url: "",
+                  video_file_name: "",
+                  video_uploading: false,
+                  video_upload_progress: 0,
                   content: "",
                   duration_minutes: 10,
                   is_free: false,
@@ -181,10 +336,7 @@ export default function CourseBuilder() {
     try {
       let savedCourse: Course;
       if (isNew) {
-        const { data } = await coursesApi.createCourse({
-          ...course,
-          status: "draft",
-        } as Partial<Course>);
+        const { data } = await coursesApi.createCourse(course as Partial<Course>);
         savedCourse = data;
       } else {
         const { data } = await coursesApi.updateCourse(Number(courseId), course as Partial<Course>);
@@ -448,12 +600,12 @@ export default function CourseBuilder() {
                           </div>
 
                           {lesson.content_type === "video" && (
-                            <input
-                              type="url"
-                              value={lesson.video_url}
-                              onChange={(e) => updateLesson(si, li, { video_url: e.target.value })}
-                              className="mt-2 w-full text-xs border border-gray-200 rounded-lg px-3 py-1.5 outline-none"
-                              placeholder="Video URL (YouTube, Vimeo, etc.)"
+                            <VideoUploader
+                              lesson={lesson}
+                              onUrlChange={(url) => updateLesson(si, li, { video_url: url })}
+                              onProgress={(pct) =>
+                                updateLesson(si, li, { video_upload_progress: pct })
+                              }
                             />
                           )}
 
