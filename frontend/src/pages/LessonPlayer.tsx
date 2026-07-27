@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   CheckCircle,
@@ -12,16 +12,20 @@ import {
   Maximize2,
   Minimize2,
   Loader2,
+  Lock,
+  CreditCard,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { learningApi } from "../api/learning";
 import { enrollmentsApi } from "../api/enrollments";
+import { paymentsApi } from "../api/payments";
 import type { Lesson } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 // ── Video Player Component ──────────────────────────────────────────
 
-function VideoPlayer({ src }: { src: string }) {
+function VideoPlayer({ src, onEnded }: { src: string; onEnded?: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -100,6 +104,11 @@ function VideoPlayer({ src }: { src: string }) {
   const handleWaiting = () => setIsBuffering(true);
   const handleCanPlay = () => setIsBuffering(false);
 
+  const handleEnded = () => {
+    setIsPlaying(false);
+    onEnded?.();
+  };
+
   const showControlsTemporarily = () => {
     setShowControls(true);
     clearTimeout(controlsTimeout.current);
@@ -131,7 +140,7 @@ function VideoPlayer({ src }: { src: string }) {
         onPause={() => setIsPlaying(false)}
         onWaiting={handleWaiting}
         onCanPlay={handleCanPlay}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={handleEnded}
       />
 
       {/* Buffering spinner */}
@@ -228,32 +237,82 @@ function VideoPlayer({ src }: { src: string }) {
 
 export default function LessonPlayer() {
   const { lessonId } = useParams<{ lessonId: string }>();
+  const navigate = useNavigate();
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [courseLessons, setCourseLessons] = useState<Lesson[]>([]);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<number>>(new Set());
+  const [enrollmentId, setEnrollmentId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);
+  const [videoEnded, setVideoEnded] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  // Build navigation
+  const currentIndex = courseLessons.findIndex((l) => l.id === lesson?.id);
+  const prevLesson = currentIndex > 0 ? courseLessons[currentIndex - 1] : null;
+  const nextLesson = currentIndex >= 0 && currentIndex < courseLessons.length - 1 ? courseLessons[currentIndex + 1] : null;
 
   useEffect(() => {
     if (!lessonId) return;
     setLoading(true);
+    setVideoEnded(false);
+    setCompleted(false);
+    setCompletedLessonIds(new Set());
+
+    const id = parseInt(lessonId);
     learningApi
-      .getLesson(parseInt(lessonId))
-      .then((res) => setLesson(res.data))
+      .getLesson(id)
+      .then((lessonRes) => {
+        setLesson(lessonRes.data);
+        const courseId = lessonRes.data.course;
+        // Fetch enrollment, course lessons, and lesson progress in parallel
+        return Promise.all([
+          enrollmentsApi.listEnrollments({ course: String(courseId) }),
+          learningApi.listLessons({ course: String(courseId) }),
+          enrollmentsApi.listLessonProgress({ course: String(courseId) }),
+        ]);
+      })
+      .then(([enrollRes, lessonsRes, progressRes]) => {
+        if (enrollRes.data.length > 0) {
+          setEnrollmentId(enrollRes.data[0].id);
+        }
+        const sorted = [...lessonsRes.data].sort((a, b) => a.order - b.order);
+        setCourseLessons(sorted);
+        const completedIds = new Set(
+          progressRes.data
+            .filter((p) => p.is_completed)
+            .map((p) => p.lesson)
+        );
+        setCompletedLessonIds(completedIds);
+        if (completedIds.has(id)) {
+          setCompleted(true);
+        }
+      })
       .catch(() => toast.error("Failed to load lesson"))
       .finally(() => setLoading(false));
   }, [lessonId]);
 
   const markComplete = async () => {
-    if (!lesson) return;
+    if (!lesson || completed) return;
+    if (!enrollmentId) {
+      toast.error("You must be enrolled in this course to mark lessons as complete");
+      return;
+    }
+    setCompleting(true);
     try {
       await enrollmentsApi.createLessonProgress({
         lesson: lesson.id,
         course: lesson.course,
+        enrollment: enrollmentId,
         is_completed: true,
+        completed_at: new Date().toISOString(),
       } as any);
       setCompleted(true);
-      toast.success("Lesson completed!");
+      setCompletedLessonIds((prev) => new Set(prev).add(lesson.id));
+      toast.success("Lesson completed! 🎉");
     } catch {
-      // Might already exist — try updating
+      // Maybe already exists — try updating
       try {
         const { data: progressList } = await enrollmentsApi.listLessonProgress({
           lesson: String(lesson.id),
@@ -261,15 +320,48 @@ export default function LessonPlayer() {
         if (progressList.length > 0) {
           await enrollmentsApi.updateLessonProgress(progressList[0].id, {
             is_completed: true,
+            completed_at: new Date().toISOString(),
           } as any);
           setCompleted(true);
-          toast.success("Lesson completed!");
+          setCompletedLessonIds((prev) => new Set(prev).add(lesson.id));
+          toast.success("Lesson completed! 🎉");
         }
       } catch {
         toast.error("Failed to mark as complete");
       }
+    } finally {
+      setCompleting(false);
     }
   };
+
+  // Auto-mark complete when video ends
+  useEffect(() => {
+    if (videoEnded && !completed) {
+      markComplete();
+    }
+  }, [videoEnded]);
+
+  const handlePayment = async () => {
+    if (!lesson) return;
+    setProcessingPayment(true);
+    try {
+      const { data } = await paymentsApi.createCheckoutSession(lesson.course);
+      if (data.session_url) {
+        window.location.href = data.session_url;
+      }
+    } catch {
+      toast.error("Failed to initiate payment. Please try again.");
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const goToLesson = (id: number) => {
+    navigate(`/lessons/${id}`);
+  };
+
+  // Flag: lesson requires payment (non-free, no enrollment)
+  const needsPayment = lesson && !lesson.is_free && !enrollmentId && parseFloat(lesson.course_price) > 0;
 
   if (loading) return <LoadingSpinner />;
   if (!lesson) return <div className="text-center py-16">Lesson not found</div>;
@@ -301,8 +393,60 @@ export default function LessonPlayer() {
         <h1 className="text-2xl font-bold text-gray-900">{lesson.title}</h1>
       </div>
 
+      {/* Payment required overlay */}
+      {needsPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => navigate(`/courses/${lesson.course}/learn`)}>
+          <div
+            className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => navigate(-1)}
+              className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100">
+              <Lock className="h-8 w-8 text-amber-600" />
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900">This lesson requires payment</h2>
+            <p className="mt-2 text-sm text-gray-500">
+              This lesson is part of <strong>{lesson.course_title}</strong>, which requires enrollment to access.
+            </p>
+
+            <div className="mt-6 rounded-xl bg-gray-50 p-4">
+              <p className="text-sm text-gray-500">Course price</p>
+              <p className="text-3xl font-bold text-gray-900">
+                ${parseFloat(lesson.course_price).toFixed(2)}
+              </p>
+            </div>
+
+            <button
+              onClick={handlePayment}
+              disabled={processingPayment}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-all"
+            >
+              <CreditCard className="h-4 w-4" />
+              {processingPayment ? "Redirecting to payment..." : "Complete Payment"}
+            </button>
+
+            <div className="mt-4 flex items-center justify-center gap-1 text-xs text-gray-400">
+              <Lock className="h-3 w-3" />
+              Secure payment powered by Stripe
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Video player */}
-      {lesson.content_type === "video" && videoSrc && <VideoPlayer src={videoSrc} />}
+      {lesson.content_type === "video" && videoSrc && !needsPayment && (
+        <VideoPlayer
+          src={videoSrc}
+          onEnded={() => setVideoEnded(true)}
+        />
+      )}
 
       {/* Content */}
       {lesson.content && (
@@ -323,30 +467,101 @@ export default function LessonPlayer() {
         </div>
       )}
 
+      {/* Video Ended Banner */}
+      {videoEnded && completed && (
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-6 mb-6 text-center">
+          <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-2" />
+          <h3 className="text-lg font-semibold text-green-800">Great job!</h3>
+          <p className="text-sm text-green-600 mt-1">
+            This lesson has been marked as complete.
+          </p>
+        </div>
+      )}
+
       {/* Actions */}
-      <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4">
         <div className="flex items-center gap-3">
           <button
             onClick={markComplete}
+            disabled={completing || completed}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               completed
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-indigo-600 text-white hover:bg-indigo-700"
+                ? "bg-green-50 text-green-700 border border-green-200 cursor-default"
+                : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
             }`}
           >
             <CheckCircle className="h-4 w-4" />
-            {completed ? "Completed" : "Mark as Complete"}
+            {completing ? "Saving..." : completed ? "Completed ✓" : "Mark as Complete"}
           </button>
+          {videoEnded && completed && nextLesson && (
+            <button
+              onClick={() => goToLesson(nextLesson.id)}
+              className="flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 hover:shadow-lg hover:shadow-green-200 transition-all"
+            >
+              Next Lesson <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          <button
+            disabled={!prevLesson}
+            onClick={() => prevLesson && goToLesson(prevLesson.id)}
+            className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>
-          <button className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          <button
+            disabled={!nextLesson}
+            onClick={() => nextLesson && goToLesson(nextLesson.id)}
+            className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             Next <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      {/* Lesson list */}
+      {courseLessons.length > 1 && (
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="flex items-center justify-between mb-3 px-2">
+            <h3 className="text-sm font-semibold text-gray-700">
+              Course Lessons ({courseLessons.length})
+            </h3>
+            <span className="text-[10px] text-gray-400">
+              {completedLessonIds.size} / {courseLessons.length} completed
+            </span>
+          </div>
+          <div className="space-y-1">
+            {courseLessons.map((l) => {
+              const isCompleted = completedLessonIds.has(l.id);
+              const isCurrent = l.id === lesson.id;
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => goToLesson(l.id)}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    isCurrent
+                      ? "bg-indigo-50 text-indigo-700 font-medium"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {isCompleted ? (
+                    <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-100 text-[10px] font-medium text-gray-500 shrink-0">
+                      {l.order}
+                    </span>
+                  )}
+                  <span className={`flex-1 truncate ${isCompleted ? "text-green-700" : ""}`}>
+                    {l.title}
+                  </span>
+                  <span className="text-[10px] text-gray-400 shrink-0">{l.duration_minutes}m</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

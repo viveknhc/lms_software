@@ -18,6 +18,7 @@ class SectionSerializer(serializers.ModelSerializer):
 class LessonSerializer(serializers.ModelSerializer):
     section_title = serializers.SerializerMethodField(read_only=True)
     course_title = serializers.SerializerMethodField(read_only=True)
+    course_price = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Lesson
@@ -27,6 +28,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "section_title",
             "course",
             "course_title",
+            "course_price",
             "title",
             "content_type",
             "video_url",
@@ -45,3 +47,6 @@ class LessonSerializer(serializers.ModelSerializer):
 
     def get_course_title(self, obj):
         return obj.course.title if obj.course else None
+
+    def get_course_price(self, obj):
+        return str(obj.course.price) if obj.course else "0.00"

@@ -85,6 +85,7 @@ export interface Lesson {
   section_title: string;
   course: number;
   course_title: string;
+  course_price: string;
   title: string;
   content_type: "video" | "document" | "text" | "quiz";
   video_url: string;
