@@ -22,6 +22,9 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(student=user)
         return qs
 
+    def perform_create(self, serializer):
+        serializer.save(student=self.request.user)
+
 
 class CourseProgressViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CourseProgress.objects.select_related("student", "course", "enrollment").all()

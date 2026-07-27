@@ -214,6 +214,16 @@ CMS_CACHE_TTL = int(os.getenv("CMS_CACHE_TTL", "300"))
 
 
 # ---------------------------------------------------------------------------
+# STRIPE PAYMENTS
+# ---------------------------------------------------------------------------
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "usd")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+
+# ---------------------------------------------------------------------------
 # DEFAULT PRIMARY KEY
 # ---------------------------------------------------------------------------
 

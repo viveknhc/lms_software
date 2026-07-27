@@ -18,7 +18,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
             "enrolled_at",
             "status",
         ]
-        read_only_fields = ["id", "enrolled_at"]
+        read_only_fields = ["id", "student", "enrolled_at"]
 
     def get_student_name(self, obj):
         return str(obj.student)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Clock,
@@ -31,6 +31,7 @@ const contentIcons: Record<string, typeof Play> = {
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [lessonsBySection, setLessonsBySection] = useState<Record<number, Lesson[]>>({});
@@ -76,11 +77,15 @@ export default function CourseDetail() {
     try {
       const price = parseFloat(course.price);
       if (price === 0) {
-        // Free course — enroll directly
+        // Free course — enroll directly via API
         const { enrollmentsApi } = await import("../api/enrollments");
-        await enrollmentsApi.listEnrollments(); // Just a quick API call to verify auth
-        // For simplicity, we'll redirect to courses page
+        // Check if already enrolled
+        const { data: existing } = await enrollmentsApi.listEnrollments({ course: String(course.id) });
+        if (existing.length === 0) {
+          await enrollmentsApi.createEnrollment({ course: course.id } as any);
+        }
         toast.success("Enrolled successfully!");
+        navigate(`/courses/${course.slug}`);
         return;
       }
       const { data } = await paymentsApi.createCheckoutSession(course.id);

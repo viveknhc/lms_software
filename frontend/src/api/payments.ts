@@ -2,15 +2,24 @@ import client from "./client";
 
 export interface Order {
   id: number;
-  user: number;
-  user_name: string;
+  student: number;
+  student_name: string;
   course: number;
   course_title: string;
   amount: string;
   currency: string;
   status: string;
-  payment_method: string;
+  stripe_session_id: string;
   created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentResult {
+  status: string;
+  course_slug?: string;
+  course_title?: string;
+  amount?: string;
+  message?: string;
 }
 
 export const paymentsApi = {
@@ -25,4 +34,7 @@ export const paymentsApi = {
 
   getOrder: (id: number) =>
     client.get<Order>(`/payments/orders/${id}/`),
+
+  getPaymentStatus: (sessionId: string) =>
+    client.get<PaymentResult>("/payments/status/", { params: { session_id: sessionId } }),
 };

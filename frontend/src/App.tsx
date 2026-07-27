@@ -31,6 +31,7 @@ import InstructorSalaries from "./pages/accounts/InstructorSalaries";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import CmsPage from "./pages/CmsPage";
+import PaymentResult from "./pages/PaymentResult";
 
 // New pages
 import InstructorCourses from "./pages/instructor/MyCourses";
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/page/:slug" element={<CmsPage />} />
+            <Route path="/payment/result" element={<PaymentResult />} />
 
             {/* Protected - any authenticated user */}
             <Route

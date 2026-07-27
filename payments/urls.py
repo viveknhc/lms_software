@@ -7,6 +7,7 @@ from payments.views import (
     OrderViewSet,
     PaymentViewSet,
     payment_cancelled,
+    payment_status,
     payment_success,
     stripe_webhook,
 )
@@ -21,4 +22,5 @@ urlpatterns = [
     path("webhook/", stripe_webhook, name="payment-webhook"),
     path("success/", payment_success, name="payment-success"),
     path("cancelled/", payment_cancelled, name="payment-cancelled"),
+    path("status/", payment_status, name="payment-status"),
 ] + router.urls

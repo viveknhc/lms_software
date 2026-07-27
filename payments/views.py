@@ -22,7 +22,7 @@ from payments.serializers import (
     PaymentSerializer,
 )
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+stripe.api_key = getattr(settings, "STRIPE_SECRET_KEY", "")
 
 
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
@@ -131,9 +131,10 @@ class CreateCheckoutSessionView(APIView):
                     "course_id": str(course.id),
                     "user_id": str(user.id),
                 },
-                success_url=request.build_absolute_uri("/api/payments/success/")
-                + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=request.build_absolute_uri("/api/payments/cancelled/"),
+                success_url=getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+                + "/payment/result?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+                + "/payment/result?status=cancelled",
             )
         except stripe.error.StripeError as e:
             return Response(
@@ -168,7 +169,7 @@ def stripe_webhook(request):
     """Handle Stripe webhook events."""
     payload = request.body
     sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
-    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    endpoint_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
 
     try:
         if endpoint_secret:
@@ -220,7 +221,7 @@ def handle_checkout_completed(event):
             amount=order.amount,
             currency=session.get("currency", getattr(settings, "DEFAULT_CURRENCY", "usd")).upper(),
             status=Payment.Status.SUCCEEDED,
-            receipt_url=session.get("receipt_url", ""),
+            receipt_url="",  # Receipt URL available from PaymentIntent, not session
             paid_at=now(),
         )
 
@@ -264,29 +265,46 @@ WEBHOOK_HANDLERS = {
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def payment_success(request):
-    """Redirect page shown after successful payment."""
+    """Redirect user to frontend after successful payment."""
+    from django.shortcuts import redirect
     session_id = request.query_params.get("session_id")
+    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+
     if session_id:
         try:
             order = Order.objects.get(stripe_session_id=session_id, status=Order.Status.COMPLETED)
-            return Response(
-                {
-                    "status": "success",
-                    "message": f"Payment successful! You are now enrolled in '{order.course.title}'.",
-                    "course_slug": order.course.slug,
-                }
-            )
+            return redirect(f"{frontend_url}/payment/result?status=success&course_slug={order.course.slug}")
         except Order.DoesNotExist:
-            pass
-    return Response(
-        {"status": "pending", "message": "Payment is being processed. Please check your enrollments shortly."}
-    )
+            # Payment might still be processing via webhook
+            return redirect(f"{frontend_url}/payment/result?status=pending")
+    return redirect(f"{frontend_url}/payment/result?status=pending")
 
 
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def payment_cancelled(request):
-    """Redirect page shown after cancelled payment."""
-    return Response(
-        {"status": "cancelled", "message": "Payment was cancelled. No charges were made."}
-    )
+    """Redirect user to frontend after cancelled payment."""
+    from django.shortcuts import redirect
+    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+    return redirect(f"{frontend_url}/payment/result?status=cancelled")
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def payment_status(request):
+    """API endpoint for frontend to check payment status."""
+    session_id = request.query_params.get("session_id")
+    if not session_id:
+        return Response({"status": "error", "message": "Missing session_id"})
+
+    try:
+        order = Order.objects.get(stripe_session_id=session_id)
+        return Response({
+            "status": order.status,
+            "course_slug": order.course.slug,
+            "course_title": order.course.title,
+            "amount": str(order.amount),
+            "message": f"You are now enrolled in '{order.course.title}'!" if order.status == Order.Status.COMPLETED else "Payment is being processed.",
+        })
+    except Order.DoesNotExist:
+        return Response({"status": "unknown", "message": "No order found for this session."})

@@ -9,6 +9,9 @@ export const enrollmentsApi = {
   listEnrollments: (params?: Record<string, string>) =>
     client.get<Enrollment[]>("/enrollments/enrollments/", { params }),
 
+  createEnrollment: (data: Partial<Enrollment>) =>
+    client.post<Enrollment>("/enrollments/enrollments/", data),
+
   listCourseProgress: (params?: Record<string, string>) =>
     client.get<CourseProgress[]>("/enrollments/course-progress/", { params }),
 
