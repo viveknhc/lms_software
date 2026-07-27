@@ -38,6 +38,12 @@ const instructorLinks = [
   { to: "/instructor/grade", label: "Grade", icon: ClipboardCheck },
 ];
 
+const accountsLinks = [
+  { to: "/accounts/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/accounts/fees", label: "Student Fees", icon: DollarSign },
+  { to: "/accounts/instructors", label: "Instructors", icon: GraduationCap },
+];
+
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -52,10 +58,20 @@ export default function DashboardLayout() {
   );
   const unreadCount = unreadData?.unread_count ?? 0;
 
-  const links = user?.role === "admin" ? adminLinks : instructorLinks;
-  const roleLabel = user?.role === "admin" ? "Admin Panel" : "Instructor Panel";
+  const links = user?.role === "admin"
+    ? adminLinks
+    : user?.role === "accounts"
+    ? accountsLinks
+    : instructorLinks;
+  const roleLabel = user?.role === "admin"
+    ? "Admin Panel"
+    : user?.role === "accounts"
+    ? "Accounts Panel"
+    : "Instructor Panel";
   const roleColor = user?.role === "admin"
     ? "from-purple-600 to-indigo-700"
+    : user?.role === "accounts"
+    ? "from-emerald-600 to-teal-700"
     : "from-indigo-600 to-blue-700";
 
   const isActive = (path: string) =>

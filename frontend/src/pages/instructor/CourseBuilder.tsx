@@ -200,12 +200,11 @@ export default function CourseBuilder() {
     if (!isNew && courseId) {
       setLoading(true);
       Promise.all([
-        coursesApi.listCourses({ id: courseId }),
+        coursesApi.getCourse(courseId),
         coursesApi.getCourseSections(courseId),
       ])
         .then(async ([courseRes, sectionsRes]) => {
-          const found = courseRes.data[0];
-          if (found) setCourse(found);
+          setCourse(courseRes.data);
           const sects = sectionsRes.data;
           setSections(sects.map((s) => ({ ...s, lessons: [] })));
 

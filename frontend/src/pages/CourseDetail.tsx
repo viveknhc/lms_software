@@ -11,12 +11,14 @@ import {
   Lock,
   Globe,
   Award,
+  LogIn,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { coursesApi } from "../api/courses";
+import { learningApi } from "../api/learning";
 import { useAuth } from "../context/AuthContext";
 import { paymentsApi } from "../api/payments";
-import type { Course, Section } from "../types";
+import type { Course, Section, Lesson } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 const contentIcons: Record<string, typeof Play> = {
@@ -31,7 +33,7 @@ export default function CourseDetail() {
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
-  const [lessonsBySection, setLessonsBySection] = useState<Record<number, Array<{ id: number; title: string; content_type: string; is_free: boolean; duration_minutes: number; order: number }>>>({});
+  const [lessonsBySection, setLessonsBySection] = useState<Record<number, Lesson[]>>({});
   const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
   const [enrolling, setEnrolling] = useState(false);
@@ -43,17 +45,21 @@ export default function CourseDetail() {
       coursesApi.getCourse(slug),
       coursesApi.getCourseSections(slug),
     ])
-      .then(([courseRes, sectionsRes]) => {
+      .then(async ([courseRes, sectionsRes]) => {
         setCourse(courseRes.data);
         setSections(sectionsRes.data);
-        // Fetch lessons for each section
-        return Promise.all(
-          sectionsRes.data.map((s) =>
-            fetch(`/api/learning/lessons/?section=${s.id}`)
-              .then((r) => r.ok ? r.json() : [])
-              .then((lessons) => ({ sectionId: s.id, lessons }))
-          )
+        // Fetch lessons for each section using API client (includes auth headers)
+        const results = await Promise.all(
+          sectionsRes.data.map(async (s) => {
+            try {
+              const { data } = await learningApi.listLessons({ section: String(s.id) });
+              return { sectionId: s.id, lessons: data };
+            } catch {
+              return { sectionId: s.id, lessons: [] };
+            }
+          })
         );
+        return results;
       })
       .then((results) => {
         const map: Record<number, any[]> = {};
@@ -195,19 +201,26 @@ export default function CourseDetail() {
                       )}
                     </button>
                     {isExpanded && sectionLessons.length > 0 && (
-                      <div className="border-t border-gray-100">
+                      <div className="border-t border-gray-100 divide-y divide-gray-50">
                         {sectionLessons.map((lesson) => {
                           const Icon = contentIcons[lesson.content_type] || FileText;
-                          return (
+                          const content = (
                             <div
-                              key={lesson.id}
-                              className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50"
                             >
                               <Icon className="h-4 w-4 text-gray-400 shrink-0" />
                               <span className="flex-1 text-gray-700">{lesson.title}</span>
                               <div className="flex items-center gap-2 shrink-0">
                                 {lesson.is_free ? (
-                                  <Globe className="h-3.5 w-3.5 text-green-500" />
+                                  <span className="flex items-center gap-1 text-[10px] font-medium text-green-600">
+                                    <Globe className="h-3 w-3" />
+                                    Free
+                                  </span>
+                                ) : !user ? (
+                                  <span className="flex items-center gap-1 text-[10px] font-medium text-amber-600">
+                                    <LogIn className="h-3 w-3" />
+                                    Login
+                                  </span>
                                 ) : (
                                   <Lock className="h-3.5 w-3.5 text-gray-300" />
                                 )}
@@ -215,6 +228,32 @@ export default function CourseDetail() {
                               </div>
                             </div>
                           );
+
+                          if (lesson.is_free) {
+                            return (
+                              <Link
+                                key={lesson.id}
+                                to={`/lessons/${lesson.id}`}
+                                className="block"
+                              >
+                                {content}
+                              </Link>
+                            );
+                          }
+
+                          if (!user) {
+                            return (
+                              <Link
+                                key={lesson.id}
+                                to={`/login?redirect=/courses/${slug}`}
+                                className="block"
+                              >
+                                {content}
+                              </Link>
+                            );
+                          }
+
+                          return <div key={lesson.id}>{content}</div>;
                         })}
                       </div>
                     )}

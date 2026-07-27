@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "analytics",
     "cms",
     "common",
+    "finance",
 ]
 
 MIDDLEWARE = [

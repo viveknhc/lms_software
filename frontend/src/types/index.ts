@@ -5,7 +5,7 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  role: "student" | "instructor" | "admin";
+  role: "student" | "instructor" | "admin" | "accounts";
   is_active: boolean;
   bio: string;
   profile_picture: string | null;
@@ -32,7 +32,7 @@ export interface RegisterRequest {
   password_confirm: string;
   first_name?: string;
   last_name?: string;
-  role?: "student" | "instructor";
+  role?: "student" | "instructor" | "accounts";
 }
 
 export interface ChangePasswordRequest {
@@ -390,4 +390,127 @@ export interface ActivityLog {
   metadata: Record<string, unknown>;
   time_ago: string;
   created_at: string;
+}
+
+// ============================================================================
+// CMS
+// ============================================================================
+
+export interface SiteSetting {
+  id: number;
+  site_name: string;
+  site_tagline: string;
+  logo: string | null;
+  favicon: string | null;
+  phone: string;
+  email: string;
+  address: string;
+  facebook_url: string;
+  twitter_url: string;
+  linkedin_url: string;
+  youtube_url: string;
+  instagram_url: string;
+  default_meta_title: string;
+  default_meta_description: string;
+  google_analytics_id: string;
+  cache_ttl_seconds: number;
+  updated_at: string;
+}
+
+export interface Banner {
+  id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  image: string | null;
+  mobile_image: string | null;
+  link_url: string;
+  link_text: string;
+  button_style: "primary" | "secondary" | "outline";
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  featured_image: string | null;
+  author: number | null;
+  author_name: string | null;
+  category: string;
+  tags: string;
+  is_featured: boolean;
+  view_count: number;
+  published_at: string | null;
+  time_ago: string;
+  created_at: string;
+}
+
+export interface BlogPostDetail extends BlogPost {
+  content: string;
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  og_image: string | null;
+  updated_at: string;
+}
+
+export interface FAQCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  order: number;
+  is_active: boolean;
+  faq_count: number;
+}
+
+export interface FAQ {
+  id: number;
+  category: number | null;
+  category_name: string | null;
+  question: string;
+  answer: string;
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  link_url: string;
+  link_text: string;
+  announcement_type: "info" | "warning" | "success" | "promotion";
+  is_active: boolean;
+  is_dismissible: boolean;
+  starts_at: string;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Page {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  featured_image: string | null;
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  og_image: string | null;
+  is_published: boolean;
+  show_in_footer: boolean;
+  footer_order: number;
+  view_count: number;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
 }

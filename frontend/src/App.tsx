@@ -23,6 +23,15 @@ import Notifications from "./pages/Notifications";
 import MyCourses from "./pages/MyCourses";
 import NotFound from "./pages/NotFound";
 
+// Accounts pages
+import AccountsDashboard from "./pages/accounts/Dashboard";
+import InstructorSalaries from "./pages/accounts/InstructorSalaries";
+
+// CMS pages
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import CmsPage from "./pages/CmsPage";
+
 // New pages
 import InstructorCourses from "./pages/instructor/MyCourses";
 import CourseBuilder from "./pages/instructor/CourseBuilder";
@@ -59,6 +68,11 @@ export default function App() {
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:slug" element={<CourseDetail />} />
             <Route path="/certificates/verify" element={<Certificates />} />
+
+            {/* CMS Public Pages */}
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/page/:slug" element={<CmsPage />} />
 
             {/* Protected - any authenticated user */}
             <Route
@@ -161,6 +175,19 @@ export default function App() {
             <Route path="/instructor/quiz/new" element={<QuizCreator />} />
             <Route path="/instructor/quiz/:quizId/edit" element={<QuizCreator />} />
             <Route path="/instructor/grade" element={<GradeAssignments />} />
+          </Route>
+
+          {/* Accounts Dashboard Layout */}
+          <Route
+            element={
+              <ProtectedRoute requiredRole="accounts">
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/accounts/dashboard" element={<AccountsDashboard />} />
+            <Route path="/accounts/fees" element={<AccountsDashboard />} />
+            <Route path="/accounts/instructors" element={<InstructorSalaries />} />
           </Route>
 
           {/* Admin Dashboard Layout */}

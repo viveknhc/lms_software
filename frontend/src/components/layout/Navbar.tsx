@@ -13,6 +13,7 @@ import {
   FileText,
   Award,
   HelpCircle,
+  Newspaper,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { notificationsApi } from "../../api/notifications";
@@ -28,6 +29,10 @@ const studentLinks = [
 
 const instructorLinks = [
   { to: "/instructor/dashboard", label: "Dashboard", icon: LayoutDashboard },
+];
+
+const accountsLinks = [
+  { to: "/accounts/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ];
 
 const adminLinks = [
@@ -51,6 +56,8 @@ export default function Navbar() {
     ? adminLinks
     : user?.role === "instructor"
     ? instructorLinks
+    : user?.role === "accounts"
+    ? accountsLinks
     : studentLinks;
 
   const isActive = (path: string) =>
@@ -86,17 +93,30 @@ export default function Navbar() {
                 </Link>
               ))
             ) : (
-              <Link
-                to="/courses"
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive("/courses")
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                Courses
-              </Link>
+              <>
+                <Link
+                  to="/courses"
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive("/courses")
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Courses
+                </Link>
+                <Link
+                  to="/blog"
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive("/blog")
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
+                >
+                  <Newspaper className="h-4 w-4" />
+                  Blog
+                </Link>
+              </>
             )}
           </div>
 
@@ -215,14 +235,24 @@ export default function Navbar() {
                 </Link>
               ))
             ) : (
-              <Link
-                to="/courses"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
-              >
-                <BookOpen className="h-4 w-4" />
-                Courses
-              </Link>
+              <>
+                <Link
+                  to="/courses"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Courses
+                </Link>
+                <Link
+                  to="/blog"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  <Newspaper className="h-4 w-4" />
+                  Blog
+                </Link>
+              </>
             )}
           </div>
         </div>
