@@ -1,7 +1,10 @@
+import mimetypes
+import os
 import uuid
 from pathlib import Path
 
 from django.conf import settings
+from django.http import FileResponse, Http404
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -11,6 +14,44 @@ from learning.serializers import LessonSerializer, SectionSerializer
 
 
 CHUNK_DIR = Path(settings.MEDIA_ROOT) / "_chunked_uploads"
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def stream_lesson_video(request, filename):
+    """
+    Stream a lesson video with full HTTP Range (byte-serving) support.
+
+    Uses Django's built-in FileResponse which natively handles:
+    - Range / If-Range headers
+    - 206 Partial Content responses
+    - Content-Range / Accept-Ranges headers
+    - Streaming (no full-file memory load)
+
+    This enables browsers to seek into large videos, request only the
+    metadata they need, and stream chunks without downloading the
+    entire file — drastically reducing buffering on slow connections.
+    """
+    video_dir = Path(settings.MEDIA_ROOT) / "lesson_videos"
+    file_path = video_dir / filename
+
+    # Security: prevent path traversal
+    resolved = file_path.resolve()
+    if not str(resolved).startswith(str(video_dir.resolve())):
+        raise Http404("Invalid path")
+
+    if not file_path.exists() or not file_path.is_file():
+        raise Http404("Video not found")
+
+    content_type, _ = mimetypes.guess_type(str(file_path))
+    if not content_type:
+        content_type = "video/mp4"
+
+    # FileResponse handles streaming, Range headers, 206, Content-Range etc.
+    response = FileResponse(open(file_path, "rb"), content_type=content_type)
+    response["Accept-Ranges"] = "bytes"
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
 
 
 @api_view(["POST"])

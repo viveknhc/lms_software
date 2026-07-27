@@ -28,6 +28,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 function VideoPlayer({ src, onEnded }: { src: string; onEnded?: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -44,6 +45,14 @@ function VideoPlayer({ src, onEnded }: { src: string; onEnded?: () => void }) {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
+  // Use requestAnimationFrame for silky-smooth progress updates
+  const updateProgress = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+      rafRef.current = requestAnimationFrame(updateProgress);
+    }
+  };
+
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
@@ -53,17 +62,21 @@ function VideoPlayer({ src, onEnded }: { src: string; onEnded?: () => void }) {
     }
   };
 
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
-    }
-  };
-
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
       setIsBuffering(false);
     }
+  };
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    rafRef.current = requestAnimationFrame(updateProgress);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+    cancelAnimationFrame(rafRef.current);
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,11 +114,20 @@ function VideoPlayer({ src, onEnded }: { src: string; onEnded?: () => void }) {
     }
   };
 
-  const handleWaiting = () => setIsBuffering(true);
-  const handleCanPlay = () => setIsBuffering(false);
+  // Debounced buffering to avoid flickering on short network stalls
+  const bufferingTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const handleWaiting = () => {
+    // Only show buffering after a short delay (avoids flicker)
+    bufferingTimeout.current = setTimeout(() => setIsBuffering(true), 300);
+  };
+  const handleCanPlay = () => {
+    clearTimeout(bufferingTimeout.current);
+    setIsBuffering(false);
+  };
 
   const handleEnded = () => {
     setIsPlaying(false);
+    cancelAnimationFrame(rafRef.current);
     onEnded?.();
   };
 
@@ -118,6 +140,11 @@ function VideoPlayer({ src, onEnded }: { src: string; onEnded?: () => void }) {
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
 
   return (
     <div
@@ -134,12 +161,15 @@ function VideoPlayer({ src, onEnded }: { src: string; onEnded?: () => void }) {
         src={src}
         preload="metadata"
         playsInline
-        onTimeUpdate={handleTimeUpdate}
+        // Use the streaming endpoint for better range-request support
+        // (falls back to direct media URL, which also supports ranges)
         onLoadedMetadata={handleLoadedMetadata}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={handlePlay}
+        onPause={handlePause}
         onWaiting={handleWaiting}
         onCanPlay={handleCanPlay}
+        onSeeking={() => setIsBuffering(true)}
+        onSeeked={() => setIsBuffering(false)}
         onEnded={handleEnded}
       />
 
@@ -366,8 +396,11 @@ export default function LessonPlayer() {
   if (loading) return <LoadingSpinner />;
   if (!lesson) return <div className="text-center py-16">Lesson not found</div>;
 
-  // Determine video source — prefer uploaded file over external URL
-  const videoSrc = lesson.video_url || "";
+  // Determine video source — use streaming endpoint for local videos
+  const rawSrc = lesson.video_url || "";
+  const videoSrc = rawSrc.startsWith("/media/")
+    ? `/api/learning/stream-video/${rawSrc.replace("/media/lesson_videos/", "")}`
+    : rawSrc;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">

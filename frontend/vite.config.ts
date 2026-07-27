@@ -14,6 +14,8 @@ export default defineConfig({
       "/media": {
         target: "http://localhost:8000",
         changeOrigin: true,
+        // Don't buffer media responses — critical for video byte-range requests
+        selfHandleResponse: false,
       },
     },
   },
